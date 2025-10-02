@@ -1,0 +1,2397 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="考試報時提醒系統 - 專業的考試時間管理工具">
+    <meta name="keywords" content="考試, 報時, 提醒, 時間管理, 學校">
+    <meta name="author" content="Examination Timing Alert System">
+   
+    <!-- Preload critical resources -->
+    <link rel="preload" href="https://cdn.tailwindcss.com" as="script">
+   
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="./images/favicon.png">
+   
+    <title>考試報時提醒系統</title>
+   
+    <!-- TailwindCSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+   
+    <!-- TailwindCSS Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1E3A8A',
+                        secondary: '#374151',
+                        accent: '#D97706',
+                        warning: '#D97706',
+                        surface: '#F8FAFC',
+                        'surface-dark': '#0F172A'
+                    },
+                    fontFamily: {
+                        'mono': ['Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+   
+    <!-- Custom Styles -->
+    <style>
+        /* Animation Styles */
+        .warning-flash {
+            animation: flash 2s infinite;
+        }
+       
+        @keyframes flash {
+            0%, 50% {
+                background-color: #FEF3C7;
+                border-color: #D97706;
+            }
+            51%, 100% {
+                background-color: #F59E0B;
+                border-color: #92400E;
+            }
+        }
+       
+        .dark .warning-flash {
+            animation: flash-dark 2s infinite;
+        }
+       
+        @keyframes flash-dark {
+            0%, 50% {
+                background-color: #92400E;
+                border-color: #D97706;
+            }
+            51%, 100% {
+                background-color: #B45309;
+                border-color: #F59E0B;
+            }
+        }
+       
+        .urgent-flash {
+            animation: urgent 1s infinite;
+        }
+       
+        @keyframes urgent {
+            0%, 50% {
+                background-color: #FEF3C7;
+                border-color: #D97706;
+            }
+            51%, 100% {
+                background-color: #F59E0B;
+                border-color: #92400E;
+            }
+        }
+       
+        .dark .urgent-flash {
+            animation: urgent-dark 1s infinite;
+        }
+       
+        @keyframes urgent-dark {
+            0%, 50% {
+                background-color: #92400E;
+                border-color: #D97706;
+            }
+            51%, 100% {
+                background-color: #B45309;
+                border-color: #F59E0B;
+            }
+        }
+       
+        /* Enhanced Visual Effects */
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+        }
+       
+        .dark .glass-effect {
+            background: rgba(15, 23, 42, 0.95);
+        }
+       
+        .time-display {
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            font-feature-settings: "tnum";
+            font-variant-numeric: tabular-nums;
+            min-height: 1.5rem;
+            display: flex;
+            align-items: center;
+        }
+       
+        .dark .time-display {
+            text-shadow: 0 2px 4px rgba(255, 255, 255, 0.1);
+        }
+       
+        /* Time Input Display */
+        .time-input-display {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+       
+        .time-input-display:hover {
+            background-color: #F1F5F9;
+            border-color: #1E3A8A;
+        }
+       
+        .dark .time-input-display:hover {
+            background-color: #475569;
+            border-color: #3B82F6;
+        }
+       
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+       
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+       
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            transform: scale(0.9) translateY(20px);
+            transition: all 0.3s ease;
+            max-width: 400px;
+            width: 90%;
+        }
+       
+        .dark .modal-content {
+            background: #1e293b;
+            border: 1px solid #475569;
+        }
+       
+        .modal-overlay.show .modal-content {
+            transform: scale(1) translateY(0);
+        }
+       
+        /* Time Picker Styles */
+        .time-picker {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            justify-content: center;
+            margin: 1.5rem 0;
+        }
+       
+        .time-input {
+            width: 80px;
+            height: 60px;
+            font-size: 1.5rem;
+            text-align: center;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            background: #f8fafc;
+            font-family: monospace;
+            font-weight: bold;
+        }
+       
+        .dark .time-input {
+            background: #374151;
+            border-color: #6b7280;
+            color: white;
+        }
+       
+        .time-input:focus {
+            outline: none;
+            border-color: #1E3A8A;
+            box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1);
+        }
+       
+        .time-separator {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #64748b;
+        }
+       
+        .dark .time-separator {
+            color: #94a3b8;
+        }
+       
+        /* Accessibility Improvements */
+        @media (prefers-reduced-motion: reduce) {
+            .warning-flash,
+            .urgent-flash {
+                animation: none;
+                background-color: #FEF3C7 !important;
+            }
+           
+            .dark .warning-flash,
+            .dark .urgent-flash {
+                background-color: #92400E !important;
+            }
+           
+            .modal-overlay,
+            .modal-content {
+                transition: none;
+            }
+        }
+       
+        /* Print Styles */
+        @media print {
+            .warning-flash,
+            .urgent-flash {
+                animation: none;
+                background-color: #FEF3C7 !important;
+            }
+           
+            body {
+                background: white !important;
+                color: black !important;
+            }
+           
+            .modal-overlay {
+                display: none !important;
+            }
+        }
+       
+        /* Enhanced Mobile Responsiveness */
+        @media (max-width: 640px) {
+            .time-display {
+                font-size: 3rem !important;
+            }
+           
+            .modal-content {
+                margin: 1rem;
+                padding: 1.5rem;
+            }
+           
+            .time-picker {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+           
+            .time-input {
+                width: 100px;
+                height: 50px;
+                font-size: 1.25rem;
+            }
+        }
+       
+        /* Focus Indicators */
+        input:focus,
+        button:focus {
+            outline: 2px solid #1E3A8A;
+            outline-offset: 2px;
+        }
+       
+        /* Loading States */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-screen font-sans">
+    <!-- Skip to main content for accessibility -->
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-primary text-white px-4 py-2 rounded">
+        跳至主要內容
+    </a>
+
+    <!-- Header -->
+    <header class="bg-primary dark:bg-slate-800 border-b-4 border-accent shadow-lg">
+        <div class="container mx-auto p-6 max-w-7xl">
+            <div class="flex items-center justify-center gap-6">
+                <img
+                    src="./images/NDC_school_logov2.png"
+                    alt="學校校徽"
+                    class="h-16 w-16 object-contain"
+                    loading="eager"
+                    onerror="this.style.display='none'"
+                >
+                <div class="text-center">
+                    <h1 class="text-4xl font-bold text-white tracking-wider">
+                        考試報時提醒系統
+                    </h1>
+                    <p class="text-blue-100 dark:text-slate-300 mt-2 text-lg">
+                        EXAMINATION TIMING ALERT SYSTEM
+                    </p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main id="main-content" class="container mx-auto p-6 max-w-7xl">
+        <div class="grid grid-cols-1 lg:grid-cols-[25%_25%_50%] gap-8">
+           
+            <!-- Time Configuration Panel -->
+            <section class="order-1 lg:order-1" aria-labelledby="config-title">
+                <div class="bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 shadow-xl rounded-lg h-full">
+                    <header class="bg-secondary text-white p-4 border-b-2 border-slate-300 dark:border-slate-600 rounded-t-lg">
+                        <h2 id="config-title" class="text-xl font-bold text-center tracking-wide">
+                            考試時間設定
+                        </h2>
+                        <p class="text-center text-slate-200 text-sm mt-1">
+                            EXAM TIME CONFIGURATION
+                        </p>
+                    </header>
+                   
+                    <div class="p-6">
+                        <!-- Form 1 Configuration -->
+                        <div class="mb-8">
+                            <div class="bg-slate-100 dark:bg-slate-700 p-3 mb-4 border-l-4 border-primary rounded">
+                                <h3 class="text-lg font-bold text-primary dark:text-blue-300">
+                                    中一年級 FORM 1
+                                </h3>
+                            </div>
+                           
+                            <div class="mb-4">
+                                <div class="text-sm font-semibold mb-2 text-slate-700 dark:text-slate-300">第一節 SESSION 1</div>
+                                <div id="form1End1Display"
+                                     class="py-3 px-4 border-2 border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 transition-all rounded time-input-display"
+                                     onclick="TimePickerModal.open('form1End1')"
+                                     role="button"
+                                     tabindex="0"
+                                     aria-label="設定中一年級第一節考試結束時間">
+                                    <div class="text-base font-bold font-mono tracking-wider time-display">--:--</div>
+                                </div>
+                            </div>
+                           
+                            <div class="mb-4">
+                                <div class="text-sm font-semibold mb-2 text-slate-700 dark:text-slate-300">第二節 SESSION 2</div>
+                                <div id="form1End2Display"
+                                     class="py-3 px-4 border-2 border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 transition-all rounded time-input-display"
+                                     onclick="TimePickerModal.open('form1End2')"
+                                     role="button"
+                                     tabindex="0"
+                                     aria-label="設定中一年級第二節考試結束時間">
+                                    <div class="text-base font-bold font-mono tracking-wider time-display">--:--</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form 2 Configuration -->
+                        <div class="mb-8">
+                            <div class="bg-slate-100 dark:bg-slate-700 p-3 mb-4 border-l-4 border-primary rounded">
+                                <h3 class="text-lg font-bold text-primary dark:text-blue-300">
+                                    中二年級 FORM 2
+                                </h3>
+                            </div>
+                           
+                            <div class="mb-4">
+                                <div class="text-sm font-semibold mb-2 text-slate-700 dark:text-slate-300">第一節 SESSION 1</div>
+                                <div id="form2End1Display"
+                                     class="py-3 px-4 border-2 border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 transition-all rounded time-input-display"
+                                     onclick="TimePickerModal.open('form2End1')"
+                                     role="button"
+                                     tabindex="0"
+                                     aria-label="設定中二年級第一節考試結束時間">
+                                    <div class="text-base font-bold font-mono tracking-wider time-display">--:--</div>
+                                </div>
+                            </div>
+                           
+                            <div class="mb-4">
+                                <div class="text-sm font-semibold mb-2 text-slate-700 dark:text-slate-300">第二節 SESSION 2</div>
+                                <div id="form2End2Display"
+                                     class="py-3 px-4 border-2 border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 transition-all rounded time-input-display"
+                                     onclick="TimePickerModal.open('form2End2')"
+                                     role="button"
+                                     tabindex="0"
+                                     aria-label="設定中二年級第二節考試結束時間">
+                                    <div class="text-base font-bold font-mono tracking-wider time-display">--:--</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form 3 Configuration -->
+                        <div class="mb-8">
+                            <div class="bg-slate-100 dark:bg-slate-700 p-3 mb-4 border-l-4 border-primary rounded">
+                                <h3 class="text-lg font-bold text-primary dark:text-blue-300">
+                                    中三年級 FORM 3
+                                </h3>
+                            </div>
+                           
+                            <div class="mb-4">
+                                <div class="text-sm font-semibold mb-2 text-slate-700 dark:text-slate-300">第一節 SESSION 1</div>
+                                <div id="form3End1Display"
+                                     class="py-3 px-4 border-2 border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 transition-all rounded time-input-display"
+                                     onclick="TimePickerModal.open('form3End1')"
+                                     role="button"
+                                     tabindex="0"
+                                     aria-label="設定中三年級第一節考試結束時間">
+                                    <div class="text-base font-bold font-mono tracking-wider time-display">--:--</div>
+                                </div>
+                            </div>
+                           
+                            <div class="mb-4">
+                                <div class="text-sm font-semibold mb-2 text-slate-700 dark:text-slate-300">第二節 SESSION 2</div>
+                                <div id="form3End2Display"
+                                     class="py-3 px-4 border-2 border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 transition-all rounded time-input-display"
+                                     onclick="TimePickerModal.open('form3End2')"
+                                     role="button"
+                                     tabindex="0"
+                                     aria-label="設定中三年級第二節考試結束時間">
+                                    <div class="text-base font-bold font-mono tracking-wider time-display">--:--</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Time Display Panel -->
+            <section class="order-1 lg:order-2" aria-labelledby="remaining-title">
+                <div class="bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 shadow-xl rounded-lg h-full">
+                    <header class="bg-secondary text-white p-4 border-b-2 border-slate-300 dark:border-slate-600 rounded-t-lg">
+                        <h2 id="remaining-title" class="text-xl font-bold text-center tracking-wide">
+                            剩餘時間
+                        </h2>
+                        <p class="text-center text-slate-200 text-sm mt-1">
+                            REMAINING TIME
+                        </p>
+                    </header>
+                   
+                    <div class="p-6">
+                        <!-- Form 1 Times -->
+                        <div class="mb-8">
+                            <div class="bg-slate-100 dark:bg-slate-700 p-3 mb-4 border-l-4 border-primary rounded">
+                                <h3 class="text-lg font-bold text-primary dark:text-blue-300">中一年級 FORM 1</h3>
+                            </div>
+                           
+                            <div class="mb-4">
+                                <div class="text-sm font-semibold mb-2 text-slate-700 dark:text-slate-300">第一節 SESSION 1</div>
+                                <div id="form1Session1" class="py-3 px-4 border-2 border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 transition-all rounded" role="timer" aria-live="polite">
+                                    <div id="form1Session1Time" class="text-base font-bold font-mono tracking-wider time-display">--:--:--</div>
+                                </div>
+                            </div>
+                           
+                            <div class="mb-4">
+                                <div class="text-sm font-semibold mb-2 text-slate-700 dark:text-slate-300">第二節 SESSION 2</div>
+                                <div id="form1Session2" class="py-3 px-4 border-2 border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 transition-all rounded" role="timer" aria-live="polite">
+                                    <div id="form1Session2Time" class="text-base font-bold font-mono tracking-wider time-display">--:--:--</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form 2 Times -->
+                        <div class="mb-8">
+                            <div class="bg-slate-100 dark:bg-slate-700 p-3 mb-4 border-l-4 border-primary rounded">
+                                <h3 class="text-lg font-bold text-primary dark:text-blue-300">中二年級 FORM 2</h3>
+                            </div>
+                           
+                            <div class="mb-4">
+                                <div class="text-sm font-semibold mb-2 text-slate-700 dark:text-slate-300">第一節 SESSION 1</div>
+                                <div id="form2Session1" class="py-3 px-4 border-2 border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 transition-all rounded" role="timer" aria-live="polite">
+                                    <div id="form2Session1Time" class="text-base font-bold font-mono tracking-wider time-display">--:--:--</div>
+                                </div>
+                            </div>
+                           
+                            <div class="mb-4">
+                                <div class="text-sm font-semibold mb-2 text-slate-700 dark:text-slate-300">第二節 SESSION 2</div>
+                                <div id="form2Session2" class="py-3 px-4 border-2 border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 transition-all rounded" role="timer" aria-live="polite">
+                                    <div id="form2Session2Time" class="text-base font-bold font-mono tracking-wider time-display">--:--:--</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form 3 Times -->
+                        <div class="mb-8">
+                            <div class="bg-slate-100 dark:bg-slate-700 p-3 mb-4 border-l-4 border-primary rounded">
+                                <h3 class="text-lg font-bold text-primary dark:text-blue-300">中三年級 FORM 3</h3>
+                            </div>
+                           
+                            <div class="mb-4">
+                                <div class="text-sm font-semibold mb-2 text-slate-700 dark:text-slate-300">第一節 SESSION 1</div>
+                                <div id="form3Session1" class="py-3 px-4 border-2 border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 transition-all rounded" role="timer" aria-live="polite">
+                                    <div id="form3Session1Time" class="text-base font-bold font-mono tracking-wider time-display">--:--:--</div>
+                                </div>
+                            </div>
+                           
+                            <div class="mb-4">
+                                <div class="text-sm font-semibold mb-2 text-slate-700 dark:text-slate-300">第二節 SESSION 2</div>
+                                <div id="form3Session2" class="py-3 px-4 border-2 border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 transition-all rounded" role="timer" aria-live="polite">
+                                    <div id="form3Session2Time" class="text-base font-bold font-mono tracking-wider time-display">--:--:--</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Clock and Alerts Panel -->
+            <section class="order-3 lg:order-3">
+                <!-- Current Time Display -->
+                <div class="bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 shadow-xl mb-8 rounded-lg">
+                    <header class="bg-primary text-white p-4 border-b-2 border-blue-800 rounded-t-lg">
+                        <h2 class="text-xl font-bold text-center tracking-wide">香港標準時間</h2>
+                        <p class="text-center text-blue-100 text-sm mt-1">HONG KONG STANDARD TIME</p>
+                    </header>
+                    <div class="p-8 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-b-lg">
+                        <div class="text-center">
+                            <time
+                                id="currentTime"
+                                class="text-6xl xl:text-7xl font-bold font-mono text-primary dark:text-blue-300 time-display tracking-wider mb-4 block"
+                                role="timer"
+                                aria-live="polite"
+                            ></time>
+                            <div id="currentDate" class="text-lg text-slate-600 dark:text-slate-400 font-medium"></div>
+                        </div>
+                    </div>
+                </div>
+               
+                <!-- System Alerts -->
+                <div class="bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 shadow-xl rounded-lg">
+                    <header class="bg-accent text-white p-4 border-b-2 border-yellow-800 rounded-t-lg">
+                        <h3 class="text-xl font-bold text-center tracking-wide">系統提醒</h3>
+                        <p class="text-center text-yellow-100 text-sm mt-1">SYSTEM ALERTS</p>
+                    </header>
+                    <div class="p-6">
+                        <div id="alertsList" class="space-y-3" role="log" aria-live="polite" aria-label="系統提醒列表">
+                            <div class="text-center py-8 text-slate-500 dark:text-slate-400">
+                                <div class="text-lg font-semibold">暫無提醒</div>
+                                <div class="text-sm mt-1">NO ALERTS</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+       
+        <!-- Control Buttons Section -->
+        <div class="mt-8 text-center space-y-4">
+            <!-- Audio Test Button -->
+            <div>
+                <button
+                    onclick="testAudioSystem()"
+                    class="bg-accent hover:bg-yellow-600 text-white py-3 px-8 font-semibold tracking-wide uppercase transition-colors border-2 border-accent hover:border-yellow-600 rounded-lg shadow-lg hover:shadow-xl focus:ring-2 focus:ring-offset-2 focus:ring-accent mr-4"
+                    aria-describedby="audio-test-desc"
+                >
+                    🎵 測試音效系統 TEST AUDIO
+                </button>
+                <span id="audio-test-desc" class="sr-only">測試音效播放功能</span>
+               
+                <!-- Audio Status Indicator -->
+                <div id="audioStatus" class="mt-2 text-sm text-slate-600 dark:text-slate-400">
+                    <span id="audioStatusText">音效系統：未初始化</span>
+                </div>
+            </div>
+           
+            <!-- Reset Button -->
+            <div>
+                <button
+                    onclick="resetAllTimes()"
+                    class="bg-secondary hover:bg-slate-600 text-white py-3 px-8 font-semibold tracking-wide uppercase transition-colors border-2 border-secondary hover:border-slate-600 rounded-lg shadow-lg hover:shadow-xl focus:ring-2 focus:ring-offset-2 focus:ring-secondary"
+                    aria-describedby="reset-desc"
+                >
+                    重置所有設定 RESET ALL
+                </button>
+                <span id="reset-desc" class="sr-only">清除所有時間設定</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- Time Picker Modal -->
+    <div id="timePickerModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal-content">
+            <h3 id="modal-title" class="text-xl font-bold text-center mb-4 text-slate-900 dark:text-slate-100">設定考試結束時間</h3>
+           
+            <div class="time-picker">
+                <div>
+                    <label for="hourInput" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 text-center">小時</label>
+                    <input type="number" id="hourInput" class="time-input" min="0" max="23" placeholder="HH">
+                </div>
+               
+                <div class="time-separator">:</div>
+               
+                <div>
+                    <label for="minuteInput" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 text-center">分鐘</label>
+                    <input type="number" id="minuteInput" class="time-input" min="0" max="59" placeholder="MM">
+                </div>
+            </div>
+           
+            <div class="flex gap-3 justify-center mt-6">
+                <button onclick="TimePickerModal.save()" class="bg-primary hover:bg-blue-800 text-white px-6 py-2 rounded font-medium transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                    確定
+                </button>
+                <button onclick="TimePickerModal.clear()" class="bg-warning hover:bg-yellow-600 text-white px-6 py-2 rounded font-medium transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-warning">
+                    清除
+                </button>
+                <button onclick="TimePickerModal.close()" class="bg-slate-500 hover:bg-slate-600 text-white px-6 py-2 rounded font-medium transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-slate-500">
+                    取消
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden input fields for backwards compatibility -->
+    <div style="display: none;">
+        <input type="time" id="form1End1">
+        <input type="time" id="form1End2">
+        <input type="time" id="form2End1">
+        <input type="time" id="form2End2">
+        <input type="time" id="form3End1">
+        <input type="time" id="form3End2">
+    </div>
+
+    <!-- JavaScript Application -->
+    <script>
+        'use strict';
+       
+        // Application State
+        const AppState = {
+            alertHistory: new Set(),
+            timeAlertHistory: new Set(),
+            isPlayingAudio: false,
+            timers: new Map(),
+            examTimes: {
+                form1End1: '',
+                form1End2: '',
+                form2End1: '',
+                form2End2: '',
+                form3End1: '',
+                form3End2: ''
+            },
+            // 🎯 新增：預處理的音效時間表
+            audioSchedule: new Map(), // timestamp -> audioSequence
+            scheduleBuilt: false
+        };
+
+        // Time Picker Modal
+        const TimePickerModal = {
+            currentField: null,
+           
+            open(fieldId) {
+                this.currentField = fieldId;
+                const modal = document.getElementById('timePickerModal');
+                const hourInput = document.getElementById('hourInput');
+                const minuteInput = document.getElementById('minuteInput');
+               
+                // Get current time value
+                const currentTime = AppState.examTimes[fieldId];
+                if (currentTime) {
+                    const [hours, minutes] = currentTime.split(':');
+                    hourInput.value = parseInt(hours).toString();
+                    minuteInput.value = parseInt(minutes).toString();
+                } else {
+                    hourInput.value = '';
+                    minuteInput.value = '';
+                }
+               
+                modal.classList.add('show');
+               
+                // Focus first input
+                setTimeout(() => {
+                    hourInput.focus();
+                }, 100);
+               
+                // Add keyboard listeners
+                document.addEventListener('keydown', this.handleKeyDown.bind(this));
+            },
+           
+            close() {
+                const modal = document.getElementById('timePickerModal');
+                modal.classList.remove('show');
+                this.currentField = null;
+               
+                // Remove keyboard listeners
+                document.removeEventListener('keydown', this.handleKeyDown.bind(this));
+            },
+           
+            async save() {
+                const hourInput = document.getElementById('hourInput');
+                const minuteInput = document.getElementById('minuteInput');
+               
+                let hours = parseInt(hourInput.value) || 0;
+                let minutes = parseInt(minuteInput.value) || 0;
+               
+                // Validate input
+                if (hours < 0 || hours > 23) {
+                    this.showValidationMessage('小時必須在 0-23 之間');
+                    hourInput.focus();
+                    return;
+                }
+               
+                if (minutes < 0 || minutes > 59) {
+                    this.showValidationMessage('分鐘必須在 0-59 之間');
+                    minuteInput.focus();
+                    return;
+                }
+               
+                // Format time
+                const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+               
+                // 🎵 Initialize Web Audio API on user interaction (critical for mobile devices)
+                try {
+                    const audioInitialized = await AudioSystem.init();
+                    if (audioInitialized) {
+                        console.log('✅ Web Audio API 已在時間設定時初始化');
+                       
+                        // Start preloading audio files if not already done
+                        const audioFiles = [
+                            './voice/S1.mp3',      // 中一
+                            './voice/S2.mp3',      // 中二
+                            './voice/S3.mp3',      // 中三
+                            './voice/alarm.mp3',   // 警報聲
+                            './voice/collect.mp3', // 收卷聲
+                            './voice/15mins.mp3',  // 15分鐘
+                            './voice/5mins.mp3',   // 5分鐘
+                            './voice/end.mp3'      // 考試結束
+                        ];
+                       
+                        // Non-blocking preload
+                        AudioSystem.preloadAudioFiles(audioFiles);
+                    }
+                } catch (error) {
+                    console.warn('音頻初始化失敗，但不影響時間設定:', error);
+                }
+               
+                // Update state and display
+                AppState.examTimes[this.currentField] = timeString;
+               
+                // 安全地設置隱藏input的值
+                const hiddenInput = document.getElementById(this.currentField);
+                if (hiddenInput) {
+                    hiddenInput.value = timeString;
+                }
+               
+                this.updateDisplay(this.currentField);
+               
+                // Clear alert histories when time is changed
+                AppState.alertHistory.clear();
+                AppState.timeAlertHistory.clear();
+               
+                // 🎯 重建音效時間表
+                AudioScheduler.rebuildSchedule();
+               
+                this.close();
+               
+                // Update main display
+                DisplayManager.updateDisplay();
+            },
+           
+            clear() {
+                AppState.examTimes[this.currentField] = '';
+               
+                // 安全地清除隱藏input的值
+                const hiddenInput = document.getElementById(this.currentField);
+                if (hiddenInput) {
+                    hiddenInput.value = '';
+                }
+               
+                this.updateDisplay(this.currentField);
+               
+                // Clear alert histories
+                AppState.alertHistory.clear();
+                AppState.timeAlertHistory.clear();
+               
+                this.close();
+               
+                // Update main display
+                DisplayManager.updateDisplay();
+            },
+           
+            updateDisplay(fieldId) {
+                const displayElement = document.getElementById(fieldId + 'Display');
+                if (!displayElement) {
+                    console.warn(`顯示元素不存在: ${fieldId}Display`);
+                    return;
+                }
+               
+                const timeDiv = displayElement.querySelector('.time-display');
+                if (!timeDiv) {
+                    console.warn(`時間顯示元素不存在: .time-display in ${fieldId}Display`);
+                    return;
+                }
+               
+                const timeValue = AppState.examTimes[fieldId];
+               
+                if (timeValue) {
+                    timeDiv.textContent = timeValue;
+                } else {
+                    timeDiv.textContent = '--:--';
+                }
+            },
+           
+            showValidationMessage(message) {
+                // Create custom validation message
+                const modal = document.querySelector('.modal-content');
+               
+                // Remove existing validation message
+                const existingMessage = modal.querySelector('.validation-message');
+                if (existingMessage) {
+                    existingMessage.remove();
+                }
+               
+                // Create new validation message
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'validation-message bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-200 px-4 py-3 rounded mb-4';
+                messageDiv.textContent = message;
+               
+                // Insert before time picker
+                const timePicker = modal.querySelector('.time-picker');
+                modal.insertBefore(messageDiv, timePicker);
+               
+                // Auto remove after 3 seconds
+                setTimeout(() => {
+                    if (messageDiv.parentNode) {
+                        messageDiv.remove();
+                    }
+                }, 3000);
+            },
+           
+            handleKeyDown(event) {
+                if (event.key === 'Escape') {
+                    this.close();
+                } else if (event.key === 'Enter') {
+                    this.save();
+                }
+            }
+        };
+
+        // Utility Functions
+        const Utils = {
+            formatTime(date) {
+                return date.toLocaleTimeString('zh-HK', {
+                    timeZone: 'Asia/Hong_Kong',
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+            },
+
+            formatDate(date) {
+                return date.toLocaleDateString('zh-HK', {
+                    timeZone: 'Asia/Hong_Kong',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    weekday: 'long'
+                });
+            },
+
+            getHongKongTime() {
+                return new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Hong_Kong"}));
+            },
+
+            debounce(func, wait) {
+                let timeout;
+                return function executedFunction(...args) {
+                    const later = () => {
+                        clearTimeout(timeout);
+                        func(...args);
+                    };
+                    clearTimeout(timeout);
+                    timeout = setTimeout(later, wait);
+                };
+            }
+        };
+
+        // Dark Mode Manager
+        const DarkMode = {
+            init() {
+                // Initial check
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    document.documentElement.classList.add('dark');
+                }
+               
+                // Listen for changes
+                window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+                    if (event.matches) {
+                        document.documentElement.classList.add('dark');
+                    } else {
+                        document.documentElement.classList.remove('dark');
+                    }
+                });
+            }
+        };
+
+        // Time Calculator
+        const TimeCalculator = {
+            calculateTimeRemaining(endTime) {
+                if (!endTime) return null;
+               
+                const now = Utils.getHongKongTime();
+                const [hours, minutes] = endTime.split(':');
+                const examEnd = new Date(now);
+                examEnd.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+               
+                if (examEnd < now) {
+                    examEnd.setDate(examEnd.getDate() + 1);
+                }
+               
+                const diff = examEnd - now;
+               
+                if (diff <= 0) {
+                    return { ended: true, text: '考試已結束' };
+                }
+               
+                const totalSeconds = Math.floor(diff / 1000);
+                const hours_remaining = Math.floor(totalSeconds / 3600);
+                const minutes_remaining = Math.floor((totalSeconds % 3600) / 60);
+                const seconds_remaining = totalSeconds % 60;
+               
+                return {
+                    ended: false,
+                    totalSeconds,
+                    hours: hours_remaining,
+                    minutes: minutes_remaining,
+                    seconds: seconds_remaining,
+                    text: `${hours_remaining.toString().padStart(2, '0')}:${minutes_remaining.toString().padStart(2, '0')}:${seconds_remaining.toString().padStart(2, '0')}`
+                };
+            }
+        };
+
+        // Web Audio API System
+        const AudioSystem = {
+            audioContext: null,
+            audioBuffers: new Map(),
+            isInitialized: false,
+            audioQueue: [],
+            isProcessingQueue: false,
+
+            // 初始化Web Audio API
+            async init() {
+                if (this.isInitialized) return true;
+
+                try {
+                    // 創建AudioContext
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                   
+                    // 如果AudioContext被暫停，嘗試恢復
+                    if (this.audioContext.state === 'suspended') {
+                        await this.audioContext.resume();
+                    }
+                   
+                    console.log('Web Audio API 初始化成功');
+                    this.isInitialized = true;
+                    return true;
+                } catch (error) {
+                    console.error('Web Audio API 初始化失敗:', error);
+                    return false;
+                }
+            },
+
+            // 載入並解碼音頻文件
+            async loadAudioFile(url) {
+                if (this.audioBuffers.has(url)) {
+                    return this.audioBuffers.get(url);
+                }
+
+                try {
+                    console.log(`載入音頻文件: ${url}`);
+                    const response = await fetch(url);
+                   
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                   
+                    const arrayBuffer = await response.arrayBuffer();
+                    const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+                   
+                    // 緩存解碼後的音頻
+                    this.audioBuffers.set(url, audioBuffer);
+                    console.log(`音頻文件載入完成: ${url}`);
+                   
+                    return audioBuffer;
+                } catch (error) {
+                    console.error(`載入音頻文件失敗 ${url}:`, error);
+                    return null;
+                }
+            },
+
+            // 播放單個音頻文件
+            async playAudioBuffer(audioBuffer, volume = 1.0) {
+                if (!audioBuffer || !this.audioContext) return;
+
+                return new Promise((resolve) => {
+                    try {
+                        // 創建音頻源節點
+                        const source = this.audioContext.createBufferSource();
+                        source.buffer = audioBuffer;
+                       
+                        // 創建增益節點控制音量
+                        const gainNode = this.audioContext.createGain();
+                        gainNode.gain.setValueAtTime(volume, this.audioContext.currentTime);
+                       
+                        // 連接節點：source -> gainNode -> destination
+                        source.connect(gainNode);
+                        gainNode.connect(this.audioContext.destination);
+                       
+                        // 播放結束回調
+                        source.onended = () => {
+                            source.disconnect();
+                            gainNode.disconnect();
+                            resolve();
+                        };
+                       
+                        // 開始播放
+                        source.start(0);
+                       
+                    } catch (error) {
+                        console.error('播放音頻失敗:', error);
+                        resolve();
+                    }
+                });
+            },
+
+            // 播放音頻文件（帶載入）
+            async playAudioFile(src, volume = 1.0) {
+                try {
+                    // 確保Web Audio API已初始化
+                    if (!await this.init()) {
+                        console.warn('Web Audio API 不可用，跳過音頻播放');
+                        return;
+                    }
+
+                    // 載入音頻文件
+                    const audioBuffer = await this.loadAudioFile(src);
+                    if (!audioBuffer) {
+                        console.warn(`跳過無效音頻文件: ${src}`);
+                        return;
+                    }
+
+                    // 播放音頻
+                    await this.playAudioBuffer(audioBuffer, volume);
+                    console.log(`播放完成: ${src}`);
+                   
+                } catch (error) {
+                    console.error(`播放音頻文件失敗 ${src}:`, error);
+                }
+            },
+
+            // 預載入音頻文件
+            async preloadAudioFiles(urls) {
+                if (!await this.init()) return;
+
+                const loadPromises = urls.map(url => this.loadAudioFile(url));
+                const results = await Promise.allSettled(loadPromises);
+               
+                const successCount = results.filter(result => result.status === 'fulfilled' && result.value).length;
+                console.log(`預載入完成: ${successCount}/${urls.length} 個音頻文件`);
+            },
+
+            // 🎯 音效隊列管理系統
+            // 添加音效到隊列（按優先級排序，支持優先級搶占）
+            enqueueAudio(audioData) {
+                // 定義優先級：考試結束(1) > 5分鐘(2) > 15分鐘(3) > 其他(4)
+                const getPriority = (minutes, isAlert = false) => {
+                    if (isAlert) return 4; // 其他提醒最低優先級
+                    if (minutes === 0) return 1; // 考試結束最高優先級
+                    if (minutes === 5) return 2; // 5分鐘第二優先級
+                    if (minutes === 15) return 3; // 15分鐘第三優先級
+                    return 4; // 其他
+                };
+               
+                audioData.priority = getPriority(audioData.minutes, audioData.isAlert);
+               
+                // 🎯 檢查是否需要優先級搶占
+                const shouldPreempt = this.isProcessingQueue &&
+                                    this.audioQueue.length === 0 &&
+                                    audioData.priority < 3; // 只有高優先級（1, 2）才能搶占
+               
+                if (shouldPreempt) {
+                    console.log(`🚨 高優先級音效搶占: ${audioData.description} (優先級 ${audioData.priority})`);
+                    // 將當前音效標記為需要立即播放
+                    audioData.preempt = true;
+                    this.audioQueue.unshift(audioData); // 插入到隊列最前面
+                    return; // 不重新啟動隊列處理，當前播放完成後自動處理
+                }
+               
+                // 插入到隊列中，保持優先級排序
+                let inserted = false;
+                for (let i = 0; i < this.audioQueue.length; i++) {
+                    if (audioData.priority < this.audioQueue[i].priority) {
+                        this.audioQueue.splice(i, 0, audioData);
+                        inserted = true;
+                        break;
+                    }
+                }
+               
+                if (!inserted) {
+                    this.audioQueue.push(audioData);
+                }
+               
+                console.log(`📝 音效加入隊列 (優先級 ${audioData.priority}): ${audioData.description}`);
+                console.log(`📋 當前隊列長度: ${this.audioQueue.length}`);
+               
+                // 如果當前沒有播放，立即開始處理隊列
+                if (!this.isProcessingQueue) {
+                    this.processAudioQueue();
+                }
+            },
+           
+            // 處理音效隊列
+            async processAudioQueue() {
+                if (this.isProcessingQueue || this.audioQueue.length === 0) {
+                    return;
+                }
+               
+                this.isProcessingQueue = true;
+                console.log(`🎵 開始處理音效隊列，共 ${this.audioQueue.length} 個項目`);
+               
+                while (this.audioQueue.length > 0) {
+                    const audioData = this.audioQueue.shift();
+                    console.log(`🔊 播放音效 (優先級 ${audioData.priority}): ${audioData.description}`);
+                   
+                    try {
+                        if (audioData.type === 'timeAlert') {
+                            await this.playTimeAlertSequenceInternal(audioData.forms, audioData.minutes);
+                        } else if (audioData.type === 'alert') {
+                            await this.playAudioSequenceInternal(audioData.message);
+                        } else if (audioData.type === 'combinedPreparation') {
+                            await this.playCombinedPreparationSequence(audioData.audioFiles);
+                        }
+                       
+                        // 🎯 音效組間改為即時播放（移除間隔）
+                        // 無間隔，立即播放下一個音效組
+                       
+                    } catch (error) {
+                        console.error(`❌ 播放音效失敗: ${audioData.description}`, error);
+                    }
+                }
+               
+                this.isProcessingQueue = false;
+                console.log('✅ 音效隊列處理完成');
+            },
+
+            // 播放考試提醒音頻序列（內部方法）
+            async playAudioSequenceInternal(message) {
+                // 確保Web Audio API已初始化
+                if (!await this.init()) {
+                    console.warn('Web Audio API 不可用，跳過音頻播放');
+                    return;
+                }
+
+                const forms = [];
+                if (message.includes('中一')) forms.push('中一');
+                if (message.includes('中二')) forms.push('中二');
+                if (message.includes('中三')) forms.push('中三');
+               
+                const audioFiles = [];
+                const formOrder = ['中一', '中二', '中三'];
+               
+                formOrder.forEach((form, index) => {
+                    if (forms.includes(form)) {
+                        audioFiles.push(`./voice/S${index + 1}.mp3`);
+                    }
+                });
+                audioFiles.push('./voice/alarm.mp3');
+               
+                console.log(`播放考試提醒音頻序列:`, audioFiles);
+               
+                // 播放兩輪
+                for (let round = 0; round < 2; round++) {
+                    for (const audioFile of audioFiles) {
+                        await this.playAudioFile(audioFile, 0.8);
+                    }
+                    // 兩輪之間的間隔
+                    if (round === 0) {
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
+                }
+            },
+
+            // 播放時間提醒音頻序列（內部方法）
+            async playTimeAlertSequenceInternal(forms, minutes) {
+                // 確保Web Audio API已初始化
+                if (!await this.init()) {
+                    console.warn('Web Audio API 不可用，跳過音頻播放');
+                    return;
+                }
+
+                const audioFiles = [];
+                const formOrder = ['中一', '中二', '中三'];
+               
+                formOrder.forEach((form, index) => {
+                    if (forms.includes(form)) {
+                        audioFiles.push(`./voice/S${index + 1}.mp3`);
+                    }
+                });
+               
+                if (minutes === 0) {
+                    audioFiles.push('./voice/end.mp3');
+                } else {
+                    audioFiles.push(`./voice/${minutes}mins.mp3`);
+                }
+               
+                console.log(`播放時間提醒語音: ${forms.join(' ')} ${minutes === 0 ? '考試結束' : minutes + '分鐘'}`, audioFiles);
+               
+                // 播放兩輪
+                for (let round = 0; round < 2; round++) {
+                    for (const audioFile of audioFiles) {
+                        await this.playAudioFile(audioFile, 0.9);
+                    }
+                    // 兩輪之間的間隔
+                    if (round === 0) {
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
+                }
+            },
+
+            // 播放考試提醒音頻序列（外部接口）
+            async playAudioSequence(message) {
+                this.enqueueAudio({
+                    type: 'alert',
+                    message: message,
+                    description: `考試提醒: ${message}`,
+                    isAlert: true
+                });
+            },
+
+            // 播放合併準備報時音效序列（內部方法）
+            async playCombinedPreparationSequence(audioFiles) {
+                // 確保Web Audio API已初始化
+                if (!await this.init()) {
+                    console.warn('Web Audio API 不可用，跳過音頻播放');
+                    return;
+                }
+
+                console.log(`🎯 播放合併準備報時音效序列:`, audioFiles);
+               
+                // 播放兩輪
+                for (let round = 0; round < 2; round++) {
+                    for (const audioFile of audioFiles) {
+                        await this.playAudioFile(audioFile, 0.8);
+                    }
+                    // 兩輪之間的間隔
+                    if (round === 0) {
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
+                }
+            },
+
+            // 播放時間提醒音頻序列（外部接口）
+            async playTimeAlertSequence(forms, minutes) {
+                this.enqueueAudio({
+                    type: 'timeAlert',
+                    forms: forms,
+                    minutes: minutes,
+                    description: `時間提醒: ${forms.join(' ')} ${minutes === 0 ? '考試結束' : minutes + '分鐘'}`
+                });
+            },
+
+            // 停止所有音頻播放
+            stopAll() {
+                if (this.audioContext && this.audioContext.state !== 'closed') {
+                    try {
+                        // 暫停AudioContext來停止所有播放
+                        this.audioContext.suspend();
+                        AppState.isPlayingAudio = false;
+                        console.log('已停止所有音頻播放');
+                    } catch (error) {
+                        console.error('停止音頻播放失敗:', error);
+                    }
+                }
+            },
+
+            // 清理資源
+            cleanup() {
+                this.stopAll();
+                this.audioBuffers.clear();
+               
+                if (this.audioContext && this.audioContext.state !== 'closed') {
+                    this.audioContext.close();
+                }
+               
+                this.audioContext = null;
+                this.isInitialized = false;
+                console.log('Web Audio API 資源已清理');
+            }
+        };
+
+        // Alert Manager
+        const AlertManager = {
+            pendingAlerts: [],
+            alertBatchTimer: null,
+           
+            addAlert(message, type = 'info', relatedForms = []) {
+                // 🎯 檢查是否為準備報時提醒
+                const isPreparationAlert = message.includes('尚餘') || message.includes('預備收卷');
+               
+                if (isPreparationAlert) {
+                    // 將準備報時加入待處理列表
+                    this.pendingAlerts.push({
+                        message,
+                        type,
+                        relatedForms,
+                        timestamp: Date.now()
+                    });
+                   
+                    console.log(`📝 收集準備報時提醒: ${message}`);
+                   
+                    // 設置批次處理計時器（500ms後處理）
+                    if (this.alertBatchTimer) {
+                        clearTimeout(this.alertBatchTimer);
+                    }
+                   
+                    this.alertBatchTimer = setTimeout(() => {
+                        this.processPendingAlerts();
+                    }, 500);
+                   
+                } else {
+                    // 非準備報時提醒直接處理
+                    this.createAlertElement(message, type, relatedForms);
+                    AudioSystem.playAudioSequence(message);
+                }
+            },
+           
+            processPendingAlerts() {
+                if (this.pendingAlerts.length === 0) return;
+               
+                console.log(`🎯 處理 ${this.pendingAlerts.length} 個準備報時提醒`);
+               
+                // 🎯 新邏輯：將所有同時觸發的準備報時合併成一個統一的音效組
+                const allForms = new Set();
+                const allSessions = new Set();
+                const allRelatedForms = [];
+                let mostUrgentType = 'info';
+                const alertTypes = [];
+               
+                // 收集所有年級和節次信息
+                this.pendingAlerts.forEach(alert => {
+                    // 解析年級信息
+                    if (alert.message.includes('中一')) allForms.add('中一');
+                    if (alert.message.includes('中二')) allForms.add('中二');
+                    if (alert.message.includes('中三')) allForms.add('中三');
+                   
+                    // 解析節次信息
+                    if (alert.message.includes('第一節')) allSessions.add('第一節');
+                    if (alert.message.includes('第二節')) allSessions.add('第二節');
+                   
+                    // 解析提醒類型
+                    if (alert.message.includes('預備收卷')) {
+                        alertTypes.push('預備收卷');
+                        mostUrgentType = 'urgent';
+                    } else if (alert.message.includes('尚餘 5分鐘')) {
+                        alertTypes.push('尚餘 5分鐘');
+                        if (mostUrgentType !== 'urgent') mostUrgentType = 'warning';
+                    } else if (alert.message.includes('尚餘 15分鐘')) {
+                        alertTypes.push('尚餘 15分鐘');
+                        if (mostUrgentType !== 'urgent' && mostUrgentType !== 'warning') mostUrgentType = 'warning';
+                    }
+                   
+                    // 合併相關年級信息
+                    allRelatedForms.push(...alert.relatedForms);
+                });
+               
+                // 轉換為排序的數組
+                const formsArray = Array.from(allForms).sort((a, b) => {
+                    const order = ['中一', '中二', '中三'];
+                    return order.indexOf(a) - order.indexOf(b);
+                });
+                const sessionsArray = Array.from(allSessions);
+               
+                console.log(`🎯 涉及年級: ${formsArray.join(', ')}`);
+                console.log(`🎯 涉及節次: ${sessionsArray.join(', ')}`);
+                console.log(`🎯 提醒類型: ${[...new Set(alertTypes)].join(', ')}`);
+               
+                // 🎵 只合併音效播放，文字提示保持分開顯示
+                // 按原先的邏輯分別創建各個提醒元素
+                const groupedAlerts = {};
+                this.pendingAlerts.forEach(alert => {
+                    // 解析年級信息
+                    const forms = [];
+                    if (alert.message.includes('中一')) forms.push('中一');
+                    if (alert.message.includes('中二')) forms.push('中二');
+                    if (alert.message.includes('中三')) forms.push('中三');
+                   
+                    // 解析提醒類型
+                    let alertKey = '';
+                    if (alert.message.includes('預備收卷')) {
+                        alertKey = '預備收卷';
+                    } else if (alert.message.includes('尚餘 5分鐘')) {
+                        alertKey = '尚餘 5分鐘';
+                    } else if (alert.message.includes('尚餘 15分鐘')) {
+                        alertKey = '尚餘 15分鐘';
+                    }
+                   
+                    if (!groupedAlerts[alertKey]) {
+                        groupedAlerts[alertKey] = {
+                            forms: new Set(),
+                            sessions: new Set(),
+                            relatedForms: [],
+                            type: alert.type
+                        };
+                    }
+                   
+                    forms.forEach(form => groupedAlerts[alertKey].forms.add(form));
+                   
+                    // 解析節次
+                    if (alert.message.includes('第一節')) groupedAlerts[alertKey].sessions.add('第一節');
+                    if (alert.message.includes('第二節')) groupedAlerts[alertKey].sessions.add('第二節');
+                   
+                    // 合併相關年級信息
+                    groupedAlerts[alertKey].relatedForms.push(...alert.relatedForms);
+                });
+               
+                // 🎯 分別創建文字提醒（原先邏輯）
+                Object.entries(groupedAlerts).forEach(([alertKey, data]) => {
+                    const formsArray = Array.from(data.forms).sort();
+                    const sessionsArray = Array.from(data.sessions);
+                   
+                    let separateMessage = '';
+                    if (formsArray.length === 3) {
+                        // 全部年級
+                        separateMessage = `全部年級 ${sessionsArray.join(' ')} ${alertKey}`;
+                    } else {
+                        separateMessage = `${formsArray.join(' ')} ${sessionsArray.join(' ')} ${alertKey}`;
+                    }
+                   
+                    console.log(`📝 創建分別的文字提醒: ${separateMessage}`);
+                   
+                    // 創建分別的提醒元素
+                    this.createAlertElement(separateMessage, data.type, data.relatedForms);
+                });
+               
+                // 🎵 播放統一的合併音效組（按年級順序：中一 > 中二 > 中三 > 警報）
+                const uniqueAlertTypes = [...new Set(alertTypes)];
+                this.playCombinedPreparationAudio(formsArray, uniqueAlertTypes.join('、'));
+               
+                // 清空待處理列表
+                this.pendingAlerts = [];
+                this.alertBatchTimer = null;
+            },
+           
+            playCombinedPreparationAudio(forms, alertType) {
+                // 🎯 分別處理報時和收卷兩種音效類型
+                const formOrder = ['中一', '中二', '中三'];
+               
+                // 解析提醒類型，分開處理報時和收卷
+                const alertTypes = alertType.split('、').map(type => type.trim());
+                const hasCollectAlert = alertTypes.some(type => type.includes('預備收卷'));
+                const hasTimeAlert = alertTypes.some(type => type.includes('尚餘'));
+               
+                console.log(`🎯 分析音效類型: ${alertType}`);
+                console.log(`📋 包含收卷提醒: ${hasCollectAlert}, 包含報時提醒: ${hasTimeAlert}`);
+               
+                // 🎯 分析哪些年級需要收卷提醒，哪些需要報時提醒
+                const collectForms = new Set();  // 需要收卷音效的年級
+                const timeForms = new Set();     // 需要報時音效的年級
+               
+                // 從原始待處理提醒中分析每個年級的實際需求
+                this.pendingAlerts.forEach(alert => {
+                    const alertForms = [];
+                    if (alert.message.includes('中一')) alertForms.push('中一');
+                    if (alert.message.includes('中二')) alertForms.push('中二');
+                    if (alert.message.includes('中三')) alertForms.push('中三');
+                   
+                    if (alert.message.includes('預備收卷')) {
+                        // 這些年級需要收卷音效
+                        alertForms.forEach(form => collectForms.add(form));
+                    } else if (alert.message.includes('尚餘')) {
+                        // 這些年級需要報時音效
+                        alertForms.forEach(form => timeForms.add(form));
+                    }
+                });
+               
+                const collectFormsArray = Array.from(collectForms).sort((a, b) => {
+                    const order = ['中一', '中二', '中三'];
+                    return order.indexOf(a) - order.indexOf(b);
+                });
+                const timeFormsArray = Array.from(timeForms).sort((a, b) => {
+                    const order = ['中一', '中二', '中三'];
+                    return order.indexOf(a) - order.indexOf(b);
+                });
+               
+                console.log(`📦 需要收卷音效的年級: ${collectFormsArray.join(' ')}`);
+                console.log(`🔔 需要報時音效的年級: ${timeFormsArray.join(' ')}`);
+               
+                // 📦 優先處理收卷提醒（30秒/預備收卷）- 最高優先級
+                if (collectFormsArray.length > 0) {
+                    const collectAlertAudioFiles = [];
+                   
+                    // 按年級順序添加音效文件
+                    formOrder.forEach((form, index) => {
+                        if (collectFormsArray.includes(form)) {
+                            collectAlertAudioFiles.push(`./voice/S${index + 1}.mp3`);
+                        }
+                    });
+                   
+                    // 添加收卷音效
+                    collectAlertAudioFiles.push('./voice/collect.mp3');
+                   
+                    console.log(`📦 播放收卷音效 (優先): ${collectFormsArray.join(' ')} 預備收卷`, collectAlertAudioFiles);
+                   
+                    AudioSystem.enqueueAudio({
+                        type: 'combinedPreparation',
+                        audioFiles: collectAlertAudioFiles,
+                        description: `合併收卷提醒: ${collectFormsArray.join(' ')} 預備收卷`,
+                        isAlert: true,
+                        priority: 2 // 收卷提醒最高優先級（混合情況下先播放）
+                    });
+                }
+               
+                // 🔔 再處理報時提醒（15分鐘、5分鐘）- 較低優先級
+                if (timeFormsArray.length > 0) {
+                    const timeAlertAudioFiles = [];
+                   
+                    // 按年級順序添加音效文件
+                    formOrder.forEach((form, index) => {
+                        if (timeFormsArray.includes(form)) {
+                            timeAlertAudioFiles.push(`./voice/S${index + 1}.mp3`);
+                        }
+                    });
+                   
+                    // 添加報時警報聲
+                    timeAlertAudioFiles.push('./voice/alarm.mp3');
+                   
+                    console.log(`🔔 播放報時音效 (後續): ${timeFormsArray.join(' ')} 報時提醒`, timeAlertAudioFiles);
+                   
+                    AudioSystem.enqueueAudio({
+                        type: 'combinedPreparation',
+                        audioFiles: timeAlertAudioFiles,
+                        description: `合併報時提醒: ${timeFormsArray.join(' ')} 報時`,
+                        isAlert: true,
+                        priority: 4 // 報時提醒較低優先級（混合情況下後播放）
+                    });
+                }
+               
+                // 🎵 如果沒有明確的類型，使用預設報時音效
+                if (!hasTimeAlert && !hasCollectAlert) {
+                    const defaultAudioFiles = [];
+                   
+                    formOrder.forEach((form, index) => {
+                        if (forms.includes(form)) {
+                            defaultAudioFiles.push(`./voice/S${index + 1}.mp3`);
+                        }
+                    });
+                   
+                    defaultAudioFiles.push('./voice/alarm.mp3');
+                   
+                    console.log(`🎵 播放預設音效: ${forms.join(' ')} ${alertType}`, defaultAudioFiles);
+                   
+                    AudioSystem.enqueueAudio({
+                        type: 'combinedPreparation',
+                        audioFiles: defaultAudioFiles,
+                        description: `合併提醒: ${forms.join(' ')} ${alertType}`,
+                        isAlert: true,
+                        priority: 4
+                    });
+                }
+            },
+           
+            createAlertElement(message, type = 'info', relatedForms = []) {
+                const alertsList = document.getElementById('alertsList');
+                const placeholder = alertsList.querySelector('div');
+                if (placeholder && placeholder.textContent.includes('暫無提醒')) {
+                    placeholder.remove();
+                }
+               
+                const alertDiv = document.createElement('div');
+                const alertClass = type === 'urgent' ?
+                    'urgent-flash border-accent text-yellow-900 dark:text-yellow-100' :
+                    type === 'warning' ?
+                    'warning-flash border-warning text-yellow-900 dark:text-yellow-100' :
+                    'bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-200';
+               
+                alertDiv.className = `p-4 border-2 ${alertClass} transition-all rounded`;
+                alertDiv.setAttribute('role', 'alert');
+                alertDiv.setAttribute('aria-live', 'assertive');
+               
+                alertDiv.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="font-bold text-lg">${message}</div>
+                            <div class="text-sm opacity-75 mt-1">${Utils.formatTime(Utils.getHongKongTime())}</div>
+                        </div>
+                        <button onclick="AlertManager.removeAlert(this)" class="text-xl opacity-70 hover:opacity-100 font-bold ml-4 hover:bg-white hover:bg-opacity-20 w-8 h-8 flex items-center justify-center transition-all rounded" aria-label="關閉提醒">×</button>
+                    </div>
+                `;
+               
+                alertDiv.dataset.relatedForms = JSON.stringify(relatedForms);
+                alertsList.insertBefore(alertDiv, alertsList.firstChild);
+               
+                let countdown = 60;
+                const countdownTimer = setInterval(() => {
+                    countdown--;
+                   
+                    const messageElement = alertDiv.querySelector('.font-bold');
+                    if (messageElement) {
+                        if (countdown <= 10 && countdown > 0) {
+                            messageElement.innerHTML = `${message} <span class="countdown-timer text-xs opacity-60 ml-2">(${countdown}s)</span>`;
+                        } else if (countdown > 10) {
+                            messageElement.innerHTML = message;
+                        }
+                    }
+                   
+                    if (countdown <= 0) {
+                        clearInterval(countdownTimer);
+                        this.removeAlert(alertDiv.querySelector('button'), true);
+                    }
+                }, 1000);
+               
+                alertDiv.dataset.timerId = countdownTimer;
+                AppState.timers.set(alertDiv, countdownTimer);
+            },
+
+            removeAlert(buttonOrElement, isAutoRemove = false) {
+                let alertDiv;
+                if (buttonOrElement.tagName === 'BUTTON') {
+                    alertDiv = buttonOrElement.parentElement.parentElement;
+                } else {
+                    alertDiv = buttonOrElement;
+                }
+               
+                if (alertDiv.dataset.timerId) {
+                    clearInterval(parseInt(alertDiv.dataset.timerId));
+                    AppState.timers.delete(alertDiv);
+                }
+               
+                if (isAutoRemove && alertDiv.dataset.relatedForms) {
+                    try {
+                        const relatedForms = JSON.parse(alertDiv.dataset.relatedForms);
+                        relatedForms.forEach(formInfo => {
+                            const container = document.getElementById(`${formInfo.form}${formInfo.session}`);
+                            if (container) {
+                                const endTime = AppState.examTimes[formInfo.form + formInfo.sessionIndex + 1];
+                                const timeRemaining = TimeCalculator.calculateTimeRemaining(endTime);
+                               
+                                if (timeRemaining && !timeRemaining.ended) {
+                                    let className = 'py-3 px-4 border-2 transition-all border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 rounded';
+                                    container.className = className;
+                                }
+                            }
+                        });
+                    } catch (e) {
+                        console.error('解析相關年級信息失敗:', e);
+                    }
+                }
+               
+                alertDiv.remove();
+               
+                const alertsList = document.getElementById('alertsList');
+                if (alertsList.children.length === 0) {
+                    alertsList.innerHTML = `
+                        <div class="text-center py-8 text-slate-500 dark:text-slate-400">
+                            <div class="text-lg font-semibold">暫無提醒</div>
+                            <div class="text-sm mt-1">NO ALERTS</div>
+                        </div>
+                    `;
+                }
+            }
+        };
+
+        // 🎯 新增：音訊時間表預處理系統
+        const AudioScheduler = {
+            // 預處理音效時間表
+            buildAudioSchedule() {
+                AppState.audioSchedule.clear();
+               
+                if (!this.hasValidExamTimes()) {
+                    console.log('📋 跳過音效時間表建構：無有效考試時間');
+                    AppState.scheduleBuilt = false;
+                    return;
+                }
+               
+                const today = Utils.getHongKongTime();
+                const tomorrow = new Date(today);
+                tomorrow.setDate(today.getDate() + 1);
+               
+                // 為今天和明天建構時間表
+                [today, tomorrow].forEach(date => {
+                    this.buildScheduleForDate(date);
+                });
+               
+                AppState.scheduleBuilt = true;
+                console.log(`🎯 音效時間表建構完成，共 ${AppState.audioSchedule.size} 個時間點`);
+                this.logSchedule();
+            },
+           
+            // 檢查是否有有效的考試時間
+            hasValidExamTimes() {
+                return Object.values(AppState.examTimes).some(time => time !== '');
+            },
+           
+            // 為特定日期建構時間表
+            buildScheduleForDate(date) {
+                const forms = [
+                    { key: 'form1End1', name: '中一', session: '第一節' },
+                    { key: 'form1End2', name: '中一', session: '第二節' },
+                    { key: 'form2End1', name: '中二', session: '第一節' },
+                    { key: 'form2End2', name: '中二', session: '第二節' },
+                    { key: 'form3End1', name: '中三', session: '第一節' },
+                    { key: 'form3End2', name: '中三', session: '第二節' }
+                ];
+               
+                // 收集所有時間事件
+                const timeEvents = [];
+               
+                forms.forEach(form => {
+                    const endTimeStr = AppState.examTimes[form.key];
+                    if (!endTimeStr) return;
+                   
+                    const [hours, minutes] = endTimeStr.split(':');
+                    const endTime = new Date(date);
+                    endTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+                   
+                    // 各種提醒時間點
+                    const alertTimes = [
+                        { offset: -15*60*1000, minutes: 15, type: 'warning' }, // 15分鐘前
+                        { offset: -5*60*1000, minutes: 5, type: 'warning' },   // 5分鐘前
+                        { offset: 0, minutes: 0, type: 'complete' }              // 考試結束
+                    ];
+                   
+                    alertTimes.forEach(alert => {
+                        const triggerTime = new Date(endTime.getTime() + alert.offset);
+                       
+                        timeEvents.push({
+                            timestamp: triggerTime.getTime(),
+                            timeStr: Utils.formatTime(triggerTime),
+                            form: form.name,
+                            session: form.session,
+                            minutes: alert.minutes,
+                            type: alert.type,
+                            priority: alert.minutes === 0 ? 1 : alert.minutes === 5 ? 2 : 3
+                        });
+                    });
+                });
+               
+                // 按時間戳排序
+                timeEvents.sort((a, b) => a.timestamp - b.timestamp);
+               
+                // 合併同時觸發的事件
+                this.mergeSimultaneousEvents(timeEvents);
+            },
+           
+            // 合併同時觸發的事件（容差5秒）
+            mergeSimultaneousEvents(timeEvents) {
+                const tolerance = 5000; // 5秒容差
+                const mergedGroups = [];
+                let currentGroup = [];
+               
+                timeEvents.forEach((event, index) => {
+                    if (index === 0) {
+                        currentGroup = [event];
+                    } else {
+                        const timeDiff = Math.abs(event.timestamp - currentGroup[0].timestamp);
+                       
+                        if (timeDiff <= tolerance) {
+                            // 在容差範圍內，合併到當前組
+                            currentGroup.push(event);
+                        } else {
+                            // 超出容差，處理當前組並開始新組
+                            this.processEventGroup(currentGroup);
+                            currentGroup = [event];
+                        }
+                    }
+                });
+               
+                // 處理最後一組
+                if (currentGroup.length > 0) {
+                    this.processEventGroup(currentGroup);
+                }
+            },
+           
+            // 處理事件組（生成預處理的音效序列）
+            processEventGroup(eventGroup) {
+                if (eventGroup.length === 0) return;
+               
+                // 按優先級排序
+                eventGroup.sort((a, b) => a.priority - b.priority);
+               
+                const baseTimestamp = eventGroup[0].timestamp;
+                const roundedTimestamp = Math.floor(baseTimestamp / 1000) * 1000; // 四捨五入到秒
+               
+                // 生成優化的音效序列
+                const audioSequence = this.generateOptimizedAudioSequence(eventGroup);
+               
+                AppState.audioSchedule.set(roundedTimestamp, audioSequence);
+               
+                console.log(`📅 ${Utils.formatTime(new Date(roundedTimestamp))} - 預處理 ${eventGroup.length} 個事件`);
+            },
+           
+            // 生成優化的音效序列
+            generateOptimizedAudioSequence(eventGroup) {
+                const sequence = {
+                    timestamp: eventGroup[0].timestamp,
+                    timeStr: eventGroup[0].timeStr,
+                    events: eventGroup,
+                    audioItems: []
+                };
+               
+                // 按優先級排序後生成音效項目
+                eventGroup.forEach((event, index) => {
+                    const audioItem = {
+                        priority: event.priority,
+                        description: `時間提醒: ${event.form} ${event.minutes === 0 ? '考試結束' : event.minutes + '分鐘'}`,
+                        type: 'timeAlert',
+                        forms: [event.form],
+                        minutes: event.minutes,
+                        delay: index * 100 // 錯開播放時間
+                    };
+                   
+                    sequence.audioItems.push(audioItem);
+                });
+               
+                return sequence;
+            },
+           
+            // 檢查並執行預定的音效
+            checkScheduledAudio() {
+                if (!AppState.scheduleBuilt || AppState.audioSchedule.size === 0) {
+                    return;
+                }
+               
+                const now = Utils.getHongKongTime();
+                const currentTimestamp = Math.floor(now.getTime() / 1000) * 1000;
+               
+                // 檢查當前時間點的音效
+                const scheduledSequence = AppState.audioSchedule.get(currentTimestamp);
+                if (scheduledSequence) {
+                    console.log(`⏰ 執行預定音效序列: ${scheduledSequence.timeStr}`);
+                    this.executeScheduledSequence(scheduledSequence);
+                   
+                    // 移除已執行的時間點
+                    AppState.audioSchedule.delete(currentTimestamp);
+                }
+               
+                // 清理過期的時間點（超過1小時前的）
+                const oneHourAgo = currentTimestamp - 3600000;
+                for (const [timestamp] of AppState.audioSchedule) {
+                    if (timestamp < oneHourAgo) {
+                        AppState.audioSchedule.delete(timestamp);
+                    }
+                }
+            },
+           
+            // 執行預定的音效序列
+            executeScheduledSequence(sequence) {
+                sequence.audioItems.forEach((audioItem, index) => {
+                    setTimeout(() => {
+                        // 標記為已處理，避免重複觸發
+                        const alertKey = `${audioItem.forms.join('-')}-${audioItem.minutes}mins-${sequence.timestamp}`;
+                        AppState.timeAlertHistory.add(alertKey);
+                       
+                        // 直接播放音效
+                        AudioSystem.playTimeAlertSequence(audioItem.forms, audioItem.minutes);
+                        console.log(`🎵 預定播放: ${audioItem.description} (優先級 ${audioItem.priority})`);
+                    }, audioItem.delay);
+                });
+            },
+           
+            // 顯示音效時間表
+            logSchedule() {
+                if (AppState.audioSchedule.size === 0) {
+                    console.log('📋 音效時間表：空');
+                    return;
+                }
+               
+                console.log('📋 音效時間表預覽：');
+                const sortedEntries = Array.from(AppState.audioSchedule.entries())
+                    .sort(([a], [b]) => a - b)
+                    .slice(0, 10); // 只顯示前10個
+               
+                sortedEntries.forEach(([timestamp, sequence]) => {
+                    const eventDescriptions = sequence.events.map(e =>
+                        `${e.form} ${e.minutes === 0 ? '結束' : e.minutes + 'min'}`
+                    ).join(', ');
+                    console.log(`   ${sequence.timeStr} - ${eventDescriptions}`);
+                });
+               
+                if (AppState.audioSchedule.size > 10) {
+                    console.log(`   ... 還有 ${AppState.audioSchedule.size - 10} 個時間點`);
+                }
+            },
+           
+            // 重建時間表
+            rebuildSchedule() {
+                console.log('🔄 重建音效時間表...');
+                this.buildAudioSchedule();
+            }
+        };
+
+        // Alert Checker
+        const AlertChecker = {
+            checkAndProcessAlerts() {
+                const forms = ['form1', 'form2', 'form3'];
+                const formNames = ['中一', '中二', '中三'];
+                const sessions = ['Session1', 'Session2'];
+                const sessionNames = ['第一節', '第二節'];
+               
+                const alertsToProcess = [];
+               
+                forms.forEach((form, formIndex) => {
+                    sessions.forEach((session, sessionIndex) => {
+                        const endTime = AppState.examTimes[`${form}End${sessionIndex + 1}`];
+                        const timeRemaining = TimeCalculator.calculateTimeRemaining(endTime);
+                       
+                        if (!timeRemaining || timeRemaining.ended) return;
+                       
+                        const totalSeconds = timeRemaining.totalSeconds;
+                        const alertKey = `${formNames[formIndex]}-${sessionNames[sessionIndex]}`;
+                       
+                        const alerts = [
+                            { seconds: 930, message: '15分鐘', type: 'warning' },
+                            { seconds: 330, message: '5分鐘', type: 'warning' },
+                            { seconds: 30, message: '預備收卷', type: 'urgent' }
+                        ];
+                       
+                        alerts.forEach(alert => {
+                            const alertId = `${alertKey}-${alert.seconds}`;
+                            if (totalSeconds <= alert.seconds && totalSeconds > alert.seconds - 5 && !AppState.alertHistory.has(alertId)) {
+                                alertsToProcess.push({
+                                    formName: formNames[formIndex],
+                                    sessionName: sessionNames[sessionIndex],
+                                    alertSeconds: alert.seconds,
+                                    message: alert.message,
+                                    type: alert.type,
+                                    alertId: alertId
+                                });
+                                AppState.alertHistory.add(alertId);
+                            }
+                        });
+                    });
+                });
+               
+                const groupedAlerts = {};
+                alertsToProcess.forEach(alert => {
+                    const groupKey = `${alert.sessionName}-${alert.alertSeconds}`;
+                    if (!groupedAlerts[groupKey]) {
+                        groupedAlerts[groupKey] = {
+                            sessionName: alert.sessionName,
+                            message: alert.message,
+                            type: alert.type,
+                            forms: []
+                        };
+                    }
+                    groupedAlerts[groupKey].forms.push(alert.formName);
+                });
+               
+                Object.values(groupedAlerts).forEach(group => {
+                    const formsText = group.forms.join(' ');
+                    let alertMessage;
+                   
+                    if (group.message === '預備收卷') {
+                        alertMessage = `${formsText} ${group.sessionName} ${group.message}`;
+                    } else {
+                        alertMessage = `${formsText} ${group.sessionName} 尚餘 ${group.message}`;
+                    }
+                   
+                    const relatedForms = [];
+                    const forms = ['form1', 'form2', 'form3'];
+                    const formNames = ['中一', '中二', '中三'];
+                    const sessions = ['Session1', 'Session2'];
+                    const sessionNames = ['第一節', '第二節'];
+                   
+                    group.forms.forEach(formName => {
+                        const formIndex = formNames.indexOf(formName);
+                        const sessionIndex = sessionNames.indexOf(group.sessionName);
+                        if (formIndex !== -1 && sessionIndex !== -1) {
+                            relatedForms.push({
+                                form: forms[formIndex],
+                                session: sessions[sessionIndex],
+                                sessionIndex: sessionIndex
+                            });
+                        }
+                    });
+                   
+                    AlertManager.addAlert(alertMessage, group.type, relatedForms);
+                });
+            },
+
+            checkTimeAlerts() {
+                const forms = ['form1', 'form2', 'form3'];
+                const formNames = ['中一', '中二', '中三'];
+                const sessions = ['Session1', 'Session2'];
+                const sessionNames = ['第一節', '第二節'];
+               
+                const specificMinutes = [15, 5, 0];
+               
+                // 🎯 收集本次檢查中所有觸發的時間提醒
+                const allTriggeredAlerts = [];
+               
+                specificMinutes.forEach(targetMinutes => {
+                    const formsAtTime = [];
+                   
+                    forms.forEach((form, formIndex) => {
+                        sessions.forEach((session, sessionIndex) => {
+                            const endTime = AppState.examTimes[`${form}End${sessionIndex + 1}`];
+                            const timeRemaining = TimeCalculator.calculateTimeRemaining(endTime);
+                           
+                            if (!timeRemaining) return;
+                           
+                            let shouldTrigger = false;
+                           
+                            if (targetMinutes === 0) {
+                                shouldTrigger = timeRemaining.ended;
+                            } else {
+                                if (!timeRemaining.ended) {
+                                    const totalMinutes = Math.floor(timeRemaining.totalSeconds / 60);
+                                    const seconds = timeRemaining.totalSeconds % 60;
+                                    shouldTrigger = (totalMinutes === targetMinutes && seconds <= 2);
+                                }
+                            }
+                           
+                            if (shouldTrigger) {
+                                const formKey = `${formNames[formIndex]}-${sessionNames[sessionIndex]}`;
+                                if (!formsAtTime.some(item => item.form === formNames[formIndex])) {
+                                    formsAtTime.push({
+                                        form: formNames[formIndex],
+                                        session: sessionNames[sessionIndex],
+                                        key: formKey
+                                    });
+                                }
+                            }
+                        });
+                    });
+                   
+                    if (formsAtTime.length > 0) {
+                        const timeAlertKey = `${targetMinutes}mins-${formsAtTime.map(f => f.form).sort().join('-')}`;
+                       
+                        if (!AppState.timeAlertHistory.has(timeAlertKey)) {
+                            AppState.timeAlertHistory.add(timeAlertKey);
+                            const formsList = formsAtTime.map(f => f.form);
+                           
+                            // 🎯 添加到本次觸發列表，而不是立即播放
+                            allTriggeredAlerts.push({
+                                forms: formsList,
+                                minutes: targetMinutes,
+                                priority: targetMinutes === 0 ? 1 : targetMinutes === 5 ? 2 : 3,
+                                description: `${formsList.join(' ')} ${targetMinutes === 0 ? '考試結束' : targetMinutes + '分鐘'}`
+                            });
+                           
+                            console.log(`🔔 收集時間提醒: ${formsList.join(' ')} ${targetMinutes === 0 ? '考試結束' : targetMinutes + '分鐘'} (優先級 ${targetMinutes === 0 ? 1 : targetMinutes === 5 ? 2 : 3})`);
+                        }
+                    }
+                });
+               
+                // 🎯 如果有觸發的提醒，加入批處理隊列
+                if (allTriggeredAlerts.length > 0) {
+                    // 初始化批處理隊列
+                    if (!AppState.timeAlertBatch) {
+                        AppState.timeAlertBatch = [];
+                        AppState.batchTimer = null;
+                    }
+                   
+                    // 將新觸發的提醒加入批處理隊列
+                    AppState.timeAlertBatch.push(...allTriggeredAlerts);
+                   
+                    console.log(`📝 加入批處理隊列: ${allTriggeredAlerts.length} 個新提醒`);
+                    console.log(`📋 批處理隊列總數: ${AppState.timeAlertBatch.length} 個提醒`);
+                   
+                    // 清除舊的計時器
+                    if (AppState.batchTimer) {
+                        clearTimeout(AppState.batchTimer);
+                    }
+                   
+                    // 設置批處理計時器（1秒後處理）
+                    AppState.batchTimer = setTimeout(() => {
+                        this.processBatchedTimeAlerts();
+                    }, 1000);
+                }
+            },
+           
+            // 🎯 新增：處理批處理的時間提醒
+            processBatchedTimeAlerts() {
+                if (!AppState.timeAlertBatch || AppState.timeAlertBatch.length === 0) return;
+               
+                // 按優先級排序（數字越小優先級越高）
+                AppState.timeAlertBatch.sort((a, b) => a.priority - b.priority);
+               
+                console.log(`🎯 處理批處理時間提醒隊列，共 ${AppState.timeAlertBatch.length} 個項目，按優先級排序：`);
+                AppState.timeAlertBatch.forEach(alert => {
+                    console.log(`   優先級 ${alert.priority}: ${alert.description}`);
+                });
+               
+                // 按順序加入音效隊列
+                AppState.timeAlertBatch.forEach((alert, index) => {
+                    // 稍微錯開加入時間，確保順序正確
+                    setTimeout(() => {
+                        AudioSystem.playTimeAlertSequence(alert.forms, alert.minutes);
+                        console.log(`🎵 按優先級加入音效隊列: ${alert.description}`);
+                    }, index * 100); // 每個間隔100ms
+                });
+               
+                // 清空批處理隊列
+                AppState.timeAlertBatch = [];
+                AppState.batchTimer = null;
+            }
+        };
+
+        // Display Manager
+        const DisplayManager = {
+            updateDisplay() {
+                const now = Utils.getHongKongTime();
+                document.getElementById('currentTime').textContent = Utils.formatTime(now);
+                document.getElementById('currentDate').textContent = Utils.formatDate(now);
+               
+                const forms = ['form1', 'form2', 'form3'];
+                const sessions = ['Session1', 'Session2'];
+               
+                forms.forEach((form, formIndex) => {
+                    sessions.forEach((session, sessionIndex) => {
+                        const endTime = AppState.examTimes[`${form}End${sessionIndex + 1}`];
+                        const timeDisplay = document.getElementById(`${form}${session}Time`);
+                        const container = document.getElementById(`${form}${session}`);
+                       
+                        const timeRemaining = TimeCalculator.calculateTimeRemaining(endTime);
+                       
+                        if (!endTime) {
+                            timeDisplay.textContent = '--:--:--';
+                            container.className = container.className.replace(/warning-flash|urgent-flash|border-accent|border-warning/g, '').trim() + ' py-3 px-4 border-2 border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 transition-all rounded';
+                        } else if (timeRemaining.ended) {
+                            timeDisplay.textContent = timeRemaining.text;
+                            container.className = 'py-3 px-4 border-2 border-accent bg-yellow-100 dark:bg-yellow-900 transition-all rounded';
+                        } else {
+                            timeDisplay.textContent = timeRemaining.text;
+                           
+                            let className = 'py-3 px-4 border-2 transition-all rounded ';
+                            if (timeRemaining.totalSeconds <= 30) {
+                                className += 'urgent-flash border-accent';
+                            } else if (timeRemaining.totalSeconds <= 330) {
+                                className += 'warning-flash border-warning';
+                            } else if (timeRemaining.totalSeconds <= 930) {
+                                className += 'warning-flash border-warning';
+                            } else {
+                                className += 'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700';
+                            }
+                            container.className = className;
+                        }
+                    });
+                });
+               
+                // Update time input displays
+                Object.keys(AppState.examTimes).forEach(fieldId => {
+                    TimePickerModal.updateDisplay(fieldId);
+                });
+            }
+        };
+
+        // Audio Status Manager
+        const AudioStatusManager = {
+            updateStatus(message, isError = false) {
+                const statusElement = document.getElementById('audioStatusText');
+                if (statusElement) {
+                    statusElement.textContent = message;
+                    statusElement.className = isError ? 'text-red-600 dark:text-red-400' : 'text-slate-600 dark:text-slate-400';
+                }
+            }
+        };
+
+        // Audio Test Function
+        async function testAudioSystem() {
+            const button = event.target;
+            const originalText = button.textContent;
+           
+            try {
+                button.disabled = true;
+                button.textContent = '🎵 測試中...';
+                AudioStatusManager.updateStatus('正在測試音效系統...');
+               
+                console.log('=== 開始音效系統測試 ===');
+               
+                // 1. 初始化 Web Audio API
+                const initSuccess = await AudioSystem.init();
+                if (!initSuccess) {
+                    throw new Error('Web Audio API 初始化失敗');
+                }
+               
+                console.log('✅ Web Audio API 初始化成功');
+                AudioStatusManager.updateStatus('Web Audio API 初始化成功');
+               
+                // 2. 測試音頻文件載入
+                const testFiles = [
+                    './voice/S1.mp3',
+                    './voice/alarm.mp3'
+                ];
+               
+                AudioStatusManager.updateStatus('正在載入測試音頻...');
+               
+                let loadedCount = 0;
+                for (const file of testFiles) {
+                    try {
+                        const buffer = await AudioSystem.loadAudioFile(file);
+                        if (buffer) {
+                            loadedCount++;
+                            console.log(`✅ 載入成功: ${file}`);
+                        } else {
+                            console.warn(`⚠️ 載入失敗: ${file}`);
+                        }
+                    } catch (error) {
+                        console.error(`❌ 載入錯誤 ${file}:`, error);
+                    }
+                }
+               
+                AudioStatusManager.updateStatus(`載入 ${loadedCount}/${testFiles.length} 個測試音頻`);
+               
+                // 3. 播放測試序列
+                if (loadedCount > 0) {
+                    AudioStatusManager.updateStatus('播放測試音效...');
+                   
+                    // 播放中一年級音效
+                    await AudioSystem.playAudioFile('./voice/S1.mp3', 0.6);
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                   
+                    // 播放警報聲
+                    await AudioSystem.playAudioFile('./voice/alarm.mp3', 0.6);
+                   
+                    console.log('✅ 音效播放測試完成');
+                    AudioStatusManager.updateStatus('✅ 音效系統測試成功！');
+                   
+                    // 顯示成功訊息
+                    setTimeout(() => {
+                        AudioStatusManager.updateStatus(`音效系統：已初始化 (${AudioSystem.audioBuffers.size} 個音頻檔案)`);
+                    }, 3000);
+                   
+                } else {
+                    throw new Error('無法載入任何音頻文件');
+                }
+               
+            } catch (error) {
+                console.error('❌ 音效系統測試失敗:', error);
+                AudioStatusManager.updateStatus(`❌ 測試失敗: ${error.message}`, true);
+               
+                // 提供診斷建議
+                if (error.message.includes('Web Audio API')) {
+                    console.log('建議: 請確保瀏覽器支援 Web Audio API');
+                } else if (error.message.includes('音頻文件')) {
+                    console.log('建議: 請檢查音頻文件路徑和格式');
+                } else {
+                    console.log('建議: 請檢查網絡連接和瀏覽器設定');
+                }
+               
+                setTimeout(() => {
+                    AudioStatusManager.updateStatus('音效系統：測試失敗', true);
+                }, 3000);
+               
+            } finally {
+                button.disabled = false;
+                button.textContent = originalText;
+            }
+        }
+
+        // Global Functions
+        function resetAllTimes() {
+            // Clear all exam times
+            Object.keys(AppState.examTimes).forEach(key => {
+                AppState.examTimes[key] = '';
+                document.getElementById(key).value = '';
+            });
+           
+            AppState.alertHistory.clear();
+            AppState.timeAlertHistory.clear();
+           
+            // Clear all timers
+            AppState.timers.forEach(timer => clearInterval(timer));
+            AppState.timers.clear();
+           
+            const alertsList = document.getElementById('alertsList');
+            alertsList.innerHTML = `
+                <div class="text-center py-8 text-slate-500 dark:text-slate-400">
+                    <div class="text-lg font-semibold">暫無提醒</div>
+                    <div class="text-sm mt-1">NO ALERTS</div>
+                </div>
+            `;
+           
+            DisplayManager.updateDisplay();
+        }
+
+        // Application Initialization
+        function initApp() {
+            try {
+                // Initialize dark mode
+                DarkMode.init();
+               
+                // Initialize displays
+                DisplayManager.updateDisplay();
+               
+                // Preload audio files for better performance
+                const audioFiles = [
+                    './voice/S1.mp3',      // 中一
+                    './voice/S2.mp3',      // 中二
+                    './voice/S3.mp3',      // 中三
+                    './voice/alarm.mp3',   // 警報聲
+                    './voice/collect.mp3', // 收卷聲
+                    './voice/15mins.mp3',  // 15分鐘
+                    './voice/5mins.mp3',   // 5分鐘
+                    './voice/end.mp3'      // 考試結束
+                ];
+               
+                // Preload audio files in background (non-blocking)
+                setTimeout(() => {
+                    AudioSystem.preloadAudioFiles(audioFiles);
+                }, 1000);
+               
+                // 🎯 初始化音效時間表
+                AudioScheduler.buildAudioSchedule();
+               
+                // Start main update loop
+                setInterval(() => {
+                    DisplayManager.updateDisplay();
+                    AlertChecker.checkAndProcessAlerts();
+                    // 🎯 優先使用預處理系統
+                    if (AppState.scheduleBuilt) {
+                        AudioScheduler.checkScheduledAudio();
+                    } else {
+                        // 降級使用舊系統
+                        AlertChecker.checkTimeAlerts();
+                    }
+                }, 1000);
+               
+                // Add click outside modal to close
+                document.getElementById('timePickerModal').addEventListener('click', function(event) {
+                    if (event.target === this) {
+                        TimePickerModal.close();
+                    }
+                });
+               
+                // Add keyboard support for time input displays
+                document.querySelectorAll('.time-input-display').forEach(element => {
+                    element.addEventListener('keydown', function(event) {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            this.click();
+                        }
+                    });
+                });
+               
+                // Initialize Web Audio API on user interaction
+                document.addEventListener('click', function initAudioOnInteraction() {
+                    AudioSystem.init();
+                    document.removeEventListener('click', initAudioOnInteraction);
+                }, { once: true });
+               
+                console.log('考試報時提醒系統已初始化');
+            } catch (error) {
+                console.error('應用程式初始化失敗:', error);
+            }
+        }
+
+        // Error Handling
+        window.addEventListener('error', (event) => {
+            console.error('JavaScript錯誤:', event.error);
+        });
+
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('未處理的Promise拒絕:', event.reason);
+        });
+
+        // Initialize when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initApp);
+        } else {
+            initApp();
+        }
+
+        // Page Visibility API
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                console.log('應用程式已暫停');
+            } else {
+                console.log('應用程式已恢復');
+            }
+        });
+    </script>
+</body>
+</html>
